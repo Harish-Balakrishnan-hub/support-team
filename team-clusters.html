@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sycamore Support Team</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 40px 20px 80px;
+      overflow-x: auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    header h1 { font-size: 1.8rem; font-weight: 700; color: #f8fafc; }
+    header p  { margin-top: 6px; font-size: 0.9rem; color: #64748b; }
+
+    /* ── Tree container ── */
+    .tree {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── Node boxes ── */
+    .node-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      border-radius: 14px;
+      border: 1px solid;
+      min-width: 200px;
+      max-width: 260px;
+      cursor: default;
+    }
+
+    .node-box .nav {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
+    }
+    .node-box .ninfo { display: flex; flex-direction: column; }
+    .node-box .nname { font-size: 0.95rem; font-weight: 700; }
+    .node-box .nrole { font-size: 0.72rem; opacity: 0.6; margin-top: 2px; }
+
+    .node-joel   { background: #1a0e0e; border-color: #7f1d1d; }
+    .node-joel   .nav  { background: #991b1b; color: #fee2e2; }
+    .node-joel   .nname { color: #fca5a5; }
+
+    .node-velu   { background: #170e1f; border-color: #5b21b6; }
+    .node-velu   .nav  { background: #6d28d9; color: #ddd6fe; }
+    .node-velu   .nname { color: #c4b5fd; }
+
+    .node-sugand { background: #0d1629; border-color: #1e40af; }
+    .node-sugand .nav  { background: #1d4ed8; color: #bfdbfe; }
+    .node-sugand .nname { color: #93c5fd; }
+
+    /* ── Connector lines ── */
+    .v-line {
+      width: 2px;
+      height: 36px;
+      background: #2d3348;
+    }
+
+    /* Row of cluster cards */
+    .clusters-row {
+      display: flex;
+      flex-wrap: nowrap;
+      justify-content: center;
+      gap: 16px;
+      width: 100%;
+      max-width: 1300px;
+      position: relative;
+    }
+
+    .connector-wrap {
+      width: 100%;
+      max-width: 1300px;
+      position: relative;
+    }
+
+    #connector-svg {
+      display: block;
+      width: 100%;
+      overflow: visible;
+    }
+
+    /* ── Cluster cards ── */
+    .cluster-card {
+      background: #1e2230;
+      border: 1px solid #2d3348;
+      border-radius: 16px;
+      overflow: hidden;
+      width: 190px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .cluster-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 32px rgba(0,0,0,0.45);
+    }
+
+    .cluster-header {
+      padding: 16px 18px 12px;
+      border-bottom: 2px solid var(--accent);
+      cursor: pointer;
+    }
+
+    .cluster-icon-row {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
+    }
+
+    .cluster-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--accent-bg); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; flex-shrink: 0;
+    }
+
+    .cluster-name {
+      font-size: 0.82rem; font-weight: 700; color: #f1f5f9; line-height: 1.3;
+    }
+
+    .cluster-meta {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .cluster-lead-label {
+      font-size: 0.72rem; color: #64748b;
+    }
+
+    .member-count {
+      font-size: 0.72rem; font-weight: 600;
+      background: #2d3348; color: #94a3b8;
+      padding: 2px 8px; border-radius: 20px;
+    }
+
+    .toggle-btn {
+      width: 100%; background: none; border: none;
+      border-top: 1px solid #2d3348;
+      padding: 9px 18px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      color: var(--accent); font-size: 0.75rem; font-weight: 600;
+      cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em;
+      transition: background 0.15s;
+    }
+    .toggle-btn:hover { background: #252a3a; }
+    .toggle-btn .arrow { transition: transform 0.3s; font-size: 0.65rem; }
+    .toggle-btn.open .arrow { transform: rotate(180deg); }
+
+    .members-panel {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.4s ease;
+    }
+    .members-panel.open { max-height: 500px; }
+
+    .members-inner { padding: 6px 18px 16px; }
+
+    .section-label {
+      font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: #64748b; margin: 10px 0 6px;
+    }
+
+    .members-list { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    .member-chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 10px; border-radius: 30px;
+      font-size: 0.78rem; font-weight: 500;
+    }
+    .member-chip .avatar {
+      width: 22px; height: 22px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.6rem; font-weight: 700; flex-shrink: 0;
+    }
+    .member-chip.lead {
+      background: linear-gradient(135deg, #1e3a1e, #2a4a2a);
+      border: 1px solid #3d7a3d; color: #86efac;
+    }
+    .member-chip.lead .avatar { background: #166534; color: #bbf7d0; }
+    .member-chip.lead::after { content: '★'; font-size: 0.6rem; color: #4ade80; margin-left: 2px; }
+
+    .member-chip.engineer {
+      background: #252a3a; border: 1px solid #2d3348; color: #cbd5e1;
+    }
+    .member-chip.engineer .avatar { background: #334155; color: #94a3b8; }
+
+    /* Per-cluster accent colors */
+    .cluster-abbvie  { --accent: #6366f1; --accent-bg: #1e1f3a; }
+    .cluster-bms     { --accent: #0ea5e9; --accent-bg: #0c1e2a; }
+    .cluster-csl     { --accent: #f59e0b; --accent-bg: #1f1a0c; }
+    .cluster-daiichi { --accent: #ec4899; --accent-bg: #2a0c1e; }
+    .cluster-mdr     { --accent: #10b981; --accent-bg: #0c1f18; }
+    .cluster-l3      { --accent: #f97316; --accent-bg: #1f140c; }
+
+    /* Legend */
+    .legend {
+      display: flex; gap: 24px; margin-top: 40px; justify-content: center;
+      font-size: 0.8rem; color: #64748b;
+    }
+    .legend-item { display: flex; align-items: center; gap: 7px; }
+    .legend-dot { width: 11px; height: 11px; border-radius: 50%; }
+    .legend-dot.lead { background: #22c55e; }
+    .legend-dot.eng  { background: #475569; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Sycamore Support Team</h1>
+  </header>
+
+  <div class="tree">
+
+    <!-- Joel -->
+    <div class="node-box node-joel">
+      <div class="nav">JL</div>
+      <div class="ninfo">
+        <span class="nname">Joel</span>
+        <span class="nrole">Executive Director</span>
+      </div>
+    </div>
+
+    <div class="v-line"></div>
+
+    <!-- Santhana Velu -->
+    <div class="node-box node-velu">
+      <div class="nav">SV</div>
+      <div class="ninfo">
+        <span class="nname">Santhana Velu</span>
+        <span class="nrole">Director</span>
+      </div>
+    </div>
+
+    <div class="v-line"></div>
+
+    <!-- Sugand -->
+    <div class="node-box node-sugand">
+      <div class="nav">SG</div>
+      <div class="ninfo">
+        <span class="nname">Sugand</span>
+        <span class="nrole">Manager · All Clusters</span>
+      </div>
+    </div>
+
+    <!-- SVG connector -->
+    <div class="connector-wrap">
+      <svg id="connector-svg" height="60"></svg>
+    </div>
+
+    <!-- Cluster cards -->
+    <div class="clusters-row" id="grid"></div>
+
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot lead"></div> Team Lead</div>
+    <div class="legend-item"><div class="legend-dot eng"></div> Support Engineer</div>
+  </div>
+
+  <script>
+    const clusters = [
+      {
+        id: 'abbvie',
+        name: 'Abbvie / Alcon / Ascendis',
+        icon: '🏢',
+        colorClass: 'cluster-abbvie',
+        leads: ['Rajeev'],
+        engineers: ['Amartya', 'Harish', 'Kriti', 'Manthan']
+      },
+      {
+        id: 'bms',
+        name: 'BMS / Genmab / Zealand / Otsuka',
+        icon: '🔬',
+        colorClass: 'cluster-bms',
+        leads: ['Manju'],
+        engineers: ['Laurence', 'Lavanya', 'Uday', 'Vivek', 'Yashshree']
+      },
+      {
+        id: 'csl',
+        name: 'CSL / Takeda',
+        icon: '💊',
+        colorClass: 'cluster-csl',
+        leads: ['Pujalin'],
+        engineers: ['Aaquib', 'Shraddha', 'Shree']
+      },
+      {
+        id: 'daiichi',
+        name: 'Daiichi / PMI / Denali',
+        icon: '🧬',
+        colorClass: 'cluster-daiichi',
+        leads: ['Manoj'],
+        engineers: ['Alok', 'Ankit', 'Anveshnath', 'Srishti']
+      },
+      {
+        id: 'mdr',
+        name: 'MDR',
+        icon: '📋',
+        colorClass: 'cluster-mdr',
+        leads: ['Sowmya'],
+        engineers: ['Jash']
+      },
+      {
+        id: 'l3',
+        name: 'L3',
+        icon: '⚙️',
+        colorClass: 'cluster-l3',
+        leads: ['Sanitha'],
+        engineers: ['Naveen', 'Swapnil S']
+      }
+    ];
+
+    function initials(name) {
+      return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2);
+    }
+
+    function renderCluster(c) {
+      const total = c.leads.length + c.engineers.length;
+
+      const leadChips = c.leads.map(name => `
+        <div class="member-chip lead">
+          <div class="avatar">${initials(name)}</div>${name}
+        </div>`).join('');
+
+      const engChips = c.engineers.map(name => `
+        <div class="member-chip engineer">
+          <div class="avatar">${initials(name)}</div>${name}
+        </div>`).join('');
+
+      return `
+        <div class="cluster-card ${c.colorClass}" id="card-${c.id}">
+          <div class="cluster-header" onclick="toggleCard('${c.id}')">
+            <div class="cluster-icon-row">
+              <div class="cluster-icon">${c.icon}</div>
+              <div class="cluster-name">${c.name}</div>
+            </div>
+            <div class="cluster-meta">
+              <div class="cluster-lead-label">${c.leads.join(', ')} (Lead)</div>
+              <div class="member-count">${total}</div>
+            </div>
+          </div>
+          <button class="toggle-btn" id="btn-${c.id}" onclick="toggleCard('${c.id}')">
+            View Team <span class="arrow">▼</span>
+          </button>
+          <div class="members-panel" id="panel-${c.id}">
+            <div class="members-inner">
+              <div class="section-label">Lead(s)</div>
+              <div class="members-list">${leadChips}</div>
+              <div class="section-label">Engineers</div>
+              <div class="members-list">${engChips}</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    document.getElementById('grid').innerHTML = clusters.map(renderCluster).join('');
+
+    function drawConnectors() {
+      const svg      = document.getElementById('connector-svg');
+      const sugand   = document.querySelector('.node-sugand');
+      const cards    = Array.from(document.querySelectorAll('.cluster-card'));
+      const svgRect  = svg.getBoundingClientRect();
+      const sRect    = sugand.getBoundingClientRect();
+
+      // All coords relative to SVG's top-left
+      const fromX = sRect.left + sRect.width / 2 - svgRect.left;
+      const fromY = 0; // top of SVG (Sugand bottom touches here)
+      const midY  = 30; // horizontal rail Y inside SVG
+      const toY   = 60; // bottom of SVG (arrow tip)
+
+      const cardCenters = cards.map(c => {
+        const r = c.getBoundingClientRect();
+        return r.left + r.width / 2 - svgRect.left;
+      });
+
+      const leftX  = cardCenters[0];
+      const rightX = cardCenters[cardCenters.length - 1];
+
+      let html = `<defs>
+        <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+          <path d="M0,0 L0,8 L8,4 z" fill="#4a5568"/>
+        </marker>
+      </defs>`;
+
+      // Vertical from Sugand down to rail
+      html += `<line x1="${fromX}" y1="${fromY}" x2="${fromX}" y2="${midY}" stroke="#2d3348" stroke-width="2"/>`;
+      // Horizontal rail
+      html += `<line x1="${leftX}" y1="${midY}" x2="${rightX}" y2="${midY}" stroke="#2d3348" stroke-width="2"/>`;
+      // Drop lines with arrowheads to each card
+      cardCenters.forEach(cx => {
+        html += `<line x1="${cx}" y1="${midY}" x2="${cx}" y2="${toY}" stroke="#2d3348" stroke-width="2" marker-end="url(#arrow)"/>`;
+      });
+
+      svg.innerHTML = html;
+    }
+
+    window.addEventListener('load', drawConnectors);
+    window.addEventListener('resize', drawConnectors);
+
+    function toggleCard(id) {
+      const panel = document.getElementById('panel-' + id);
+      const btn   = document.getElementById('btn-' + id);
+      const isOpen = panel.classList.contains('open');
+      panel.classList.toggle('open', !isOpen);
+      btn.classList.toggle('open', !isOpen);
+      btn.innerHTML = isOpen
+        ? 'View Team <span class="arrow">▼</span>'
+        : 'Hide Team <span class="arrow">▼</span>';
+    }
+  </script>
+</body>
+</html>
